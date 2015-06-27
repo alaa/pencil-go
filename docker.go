@@ -1,58 +1,74 @@
 package main
 
 import (
-	"fmt"
 	"github.com/fsouza/go-dockerclient"
+	"log"
+	"time"
 )
 
 const (
 	Endpoint = "unix:///var/run/docker.sock"
 )
 
-type ContainerInfo struct {
-	ID    string
-	Name  string
-	Image string
-}
-
-type Docker struct {
+type DockerClient struct {
 	client *docker.Client
 }
 
-func NewDocker() {
+func NewDocker() DockerClient {
 	client, _ := docker.NewClient(Endpoint)
-	return Docker{client: client}
+	return DockerClient{client: client}
+}
+
+type ContainerInfo struct {
+	ID      string
+	Name    string
+	Image   string
+	Created time.Time
+	Config  *docker.Config
+}
+
+func (d *DockerClient) buildContainerInfo(container *docker.Container) ContainerInfo {
+	return ContainerInfo{
+		ID:      container.ID,
+		Name:    container.Name,
+		Image:   container.Image,
+		Created: container.Created,
+		Config:  container.Config,
+	}
 }
 
 func main() {
-	containers := getRunningContainers()
-	for _, container := range containers {
-		fmt.Println(container.ID)
-		fmt.Println(container.Name)
-	}
+	log.Print("Starting Pencil ... \n\n")
+	client := NewDocker()
+	s := client.getRunningContainers()
+	log.Print(s)
 }
 
-func (Docker *d) buildContainerInfo(container *docker.Container) ContainerInfo {
-	return ContainerInfo{
-		ID:    container.ID,
-		Name:  container.Name,
-		Image: container.Image,
-	}
+// getRunningContainers finds running containers and returns specific details.
+func (d *DockerClient) getRunningContainers() []ContainerInfo {
+	running_containers_ids := d.getContainersIDs()
+	a := d.getContainersDetails(running_containers_ids)
+	return a
 }
 
-func (Docker *d) getRunningContainers() []ContainerInfo {
-	client, _ := docker.NewClient(Endpoint)
-
+// getContainersIDs retruns a list of running docker contianers.
+func (d *DockerClient) getContainersIDs() []docker.APIContainers {
 	options := docker.ListContainersOptions{}
-	containers, _ := client.ListContainers(options)
+	containers, _ := d.client.ListContainers(options)
+	return containers
+}
 
-	containersInfo := []ContainerInfo{}
-
-	for _, container := range containers {
-		containerData, _ := client.InspectContainer(container.ID)
-
-		containerInfo := buildContainerInfo(containerData)
-		containersInfo = append(containersInfo, containerInfo)
+// getContainersDetails iterate over a list of containers and returns a list of ContainerInfo struct.
+func (d *DockerClient) getContainersDetails(containers []docker.APIContainers) []ContainerInfo {
+	list := []ContainerInfo{}
+	for _, c := range containers {
+		list = append(list, d.inspectContainer(c.ID))
 	}
-	return containersInfo
+	return list
+}
+
+// inspectContainer extract container info for a continer ID.
+func (d *DockerClient) inspectContainer(cid string) ContainerInfo {
+	data, _ := d.client.InspectContainer(cid)
+	return d.buildContainerInfo(data)
 }
