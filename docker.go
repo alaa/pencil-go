@@ -8,7 +8,7 @@ import (
 
 const (
 	Endpoint = "unix:///var/run/docker.sock"
-	Interval = 5 * 1000000000
+	Interval = 5 * time.Second
 )
 
 type DockerClient struct {
@@ -39,12 +39,11 @@ func (d *DockerClient) buildContainerInfo(container *docker.Container) Container
 }
 
 func main() {
-	log.Print("Starting Pencil ... \n\n")
 	client := NewDocker()
-	for {
+	c := time.Tick(Interval)
+	for now := range c {
 		containers := client.getRunningContainers()
-		log.Print(containers)
-		time.Sleep(Interval)
+		log.Print(now, containers)
 	}
 }
 
