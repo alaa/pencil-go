@@ -42,8 +42,8 @@ func main() {
 	log.Print("Starting Pencil ... \n\n")
 	client := NewDocker()
 	for {
-		s := client.getRunningContainers()
-		log.Print(s)
+		containers := client.getRunningContainers()
+		log.Print(containers)
 		time.Sleep(Interval)
 	}
 }
