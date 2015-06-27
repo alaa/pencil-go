@@ -46,9 +46,10 @@ func main() {
 
 // getRunningContainers finds running containers and returns specific details.
 func (d *DockerClient) getRunningContainers() []ContainerInfo {
-	running_containers_ids := d.getContainersIDs()
-	a := d.getContainersDetails(running_containers_ids)
-	return a
+	containersIDs := d.getContainersIDs()
+	containersDetails := d.getContainersDetails(containersIDs)
+	log.Print("Running containers count: ", len(containersDetails), "\n\n")
+	return containersDetails
 }
 
 // getContainersIDs retruns a list of running docker contianers.
