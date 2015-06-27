@@ -8,6 +8,7 @@ import (
 
 const (
 	Endpoint = "unix:///var/run/docker.sock"
+	Interval = 5 * 1000000000
 )
 
 type DockerClient struct {
@@ -40,8 +41,11 @@ func (d *DockerClient) buildContainerInfo(container *docker.Container) Container
 func main() {
 	log.Print("Starting Pencil ... \n\n")
 	client := NewDocker()
-	s := client.getRunningContainers()
-	log.Print(s)
+	for {
+		s := client.getRunningContainers()
+		log.Print(s)
+		time.Sleep(Interval)
+	}
 }
 
 // getRunningContainers finds running containers and returns specific details.
