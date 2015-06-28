@@ -16,7 +16,10 @@ type DockerClient struct {
 }
 
 func NewDocker() DockerClient {
-	client, _ := docker.NewClient(Endpoint)
+	client, err := docker.NewClient(Endpoint)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return DockerClient{client: client}
 }
 
@@ -49,30 +52,43 @@ func main() {
 
 // getRunningContainers finds running containers and returns specific details.
 func (d *DockerClient) getRunningContainers() []ContainerInfo {
-	containersIDs := d.getContainersIDs()
+	containersIDs, err := d.getContainersIDs()
+	if err != nil {
+		log.Fatal(err)
+	}
 	containersDetails := d.getContainersDetails(containersIDs)
 	log.Print("Running containers count: ", len(containersDetails), "\n\n")
 	return containersDetails
 }
 
 // getContainersIDs retruns a list of running docker contianers.
-func (d *DockerClient) getContainersIDs() []docker.APIContainers {
+func (d *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
 	options := docker.ListContainersOptions{}
-	containers, _ := d.client.ListContainers(options)
-	return containers
+	containers, err := d.client.ListContainers(options)
+	if err != nil {
+		return containers, err
+	}
+	return containers, nil
 }
 
 // getContainersDetails iterate over a list of containers and returns a list of ContainerInfo struct.
 func (d *DockerClient) getContainersDetails(containers []docker.APIContainers) []ContainerInfo {
 	list := []ContainerInfo{}
 	for _, c := range containers {
-		list = append(list, d.inspectContainer(c.ID))
+		i, err := d.inspectContainer(c.ID)
+		if err != nil {
+			log.Fatal(err)
+		}
+		list = append(list, i)
 	}
 	return list
 }
 
 // inspectContainer extract container info for a continer ID.
-func (d *DockerClient) inspectContainer(cid string) ContainerInfo {
-	data, _ := d.client.InspectContainer(cid)
-	return d.buildContainerInfo(data)
+func (d *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
+	data, err := d.client.InspectContainer(cid)
+	if err != nil {
+		return ContainerInfo{}, err
+	}
+	return d.buildContainerInfo(data), nil
 }
