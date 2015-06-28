@@ -54,7 +54,7 @@ func main() {
 func (d *DockerClient) getRunningContainers() []ContainerInfo {
 	containersIDs, err := d.getContainersIDs()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	containersDetails := d.getContainersDetails(containersIDs)
 	log.Print("Running containers count: ", len(containersDetails), "\n\n")
@@ -77,7 +77,7 @@ func (d *DockerClient) getContainersDetails(containers []docker.APIContainers) [
 	for _, c := range containers {
 		i, err := d.inspectContainer(c.ID)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 		list = append(list, i)
 	}
