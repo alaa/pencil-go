@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	consulapi "github.com/hashicorp/consul/api"
+	"time"
 )
 
 type ConsulClient struct {
@@ -39,17 +40,52 @@ func buildMember(name string, ip string, port uint16) Member {
 }
 
 func (r *ConsulAgent) members() Members {
-	stack := Members{}
+	list := Members{}
 	use_wan := false
 	members, _ := r.agent.Members(use_wan)
 	for _, member := range members {
-		stack = append(stack, buildMember(member.Name, member.Addr, member.Port))
+		list = append(list, buildMember(member.Name, member.Addr, member.Port))
 	}
-	return stack
+	return list
+}
+
+// type AgentServiceRegistration struct {
+//	ID      string   `json:",omitempty"`
+//	Name    string   `json:",omitempty"`
+//	Tags    []string `json:",omitempty"`
+//	Port    int      `json:",omitempty"`
+//	Address string   `json:",omitempty"`
+//	Check   *AgentServiceCheck
+//	Checks  AgentServiceChecks
+// }
+
+func buildService(id string, name string, port int, ip string) consulapi.AgentServiceRegistration {
+	return consulapi.AgentServiceRegistration{ID: id, Name: name, Port: port, Address: ip}
+}
+
+func (r *ConsulAgent) registerService(id string, name string, port int, ip string) error {
+	srv := buildService(id, name, port, ip)
+	if err := r.agent.ServiceRegister(&srv); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ConsulAgent) deregisterService(id string) error {
+	if err := r.agent.ServiceDeregister(id); err != nil {
+		return err
+	}
+	return nil
 }
 
 func main() {
 	client, _ := NewConsulClient()
 	agent := client.NewConsulAgent()
+
 	fmt.Println(agent.members())
+
+	agent.registerService("docker_id_here", "srv-search", 1234, "127.0.0.1")
+	time.Sleep(20 * time.Second)
+
+	agent.deregisterService("docker_id_here")
 }
