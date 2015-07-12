@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
-	consulapi "github.com/hashicorp/consul/api"
+	consul "github.com/hashicorp/consul/api"
 	"time"
 )
 
 type ConsulClient struct {
-	client *consulapi.Client
+	client *consul.Client
 }
 
 func NewConsulClient() (ConsulClient, error) {
-	client, err := consulapi.NewClient(consulapi.DefaultConfig())
+	client, err := consul.NewClient(consul.DefaultConfig())
 	if err != nil {
 		return ConsulClient{}, err
 	}
@@ -19,7 +19,7 @@ func NewConsulClient() (ConsulClient, error) {
 }
 
 type ConsulAgent struct {
-	agent *consulapi.Agent
+	agent *consul.Agent
 }
 
 func (r *ConsulClient) NewConsulAgent() ConsulAgent {
@@ -49,8 +49,8 @@ func (r *ConsulAgent) members() Members {
 	return list
 }
 
-func buildService(id string, name string, port int, ip string) consulapi.AgentServiceRegistration {
-	return consulapi.AgentServiceRegistration{ID: id, Name: name, Port: port, Address: ip}
+func buildService(id string, name string, port int, ip string) consul.AgentServiceRegistration {
+	return consul.AgentServiceRegistration{ID: id, Name: name, Port: port, Address: ip}
 }
 
 func (r *ConsulAgent) registerService(id string, name string, port int, ip string) error {
@@ -68,7 +68,7 @@ func (r *ConsulAgent) deregisterService(id string) error {
 	return nil
 }
 
-func (r *ConsulAgent) services() (map[string]*consulapi.AgentService, error) {
+func (r *ConsulAgent) services() (map[string]*consul.AgentService, error) {
 	services, err := r.agent.Services()
 	if err != nil {
 		return services, err
