@@ -69,11 +69,11 @@ func (r *ConsulAgent) deregisterService(id string) error {
 }
 
 func (r *ConsulAgent) services() (map[string]*consulapi.AgentService, error) {
-	if services, err := r.agent.Services(); err != nil {
+	services, err := r.agent.Services()
+	if err != nil {
 		return services, err
-	} else {
-		return services, nil
 	}
+	return services, nil
 }
 
 func main() {
