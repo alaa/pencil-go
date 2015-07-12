@@ -23,8 +23,8 @@ type ConsulAgent struct {
 	agent *consul.Agent
 }
 
-func (r *ConsulClient) NewConsulAgent() ConsulAgent {
-	agent := r.client.Agent()
+func (c *ConsulClient) NewConsulAgent() ConsulAgent {
+	agent := c.client.Agent()
 	return ConsulAgent{agent: agent}
 }
 
@@ -40,10 +40,10 @@ func buildMember(name string, ip string, port uint16) Member {
 	return Member{Name: name, IP: ip, Port: port}
 }
 
-func (r *ConsulAgent) members() Members {
+func (a *ConsulAgent) members() Members {
 	list := Members{}
 	use_wan := false
-	members, _ := r.agent.Members(use_wan)
+	members, _ := a.agent.Members(use_wan)
 	for _, member := range members {
 		list = append(list, buildMember(member.Name, member.Addr, member.Port))
 	}
@@ -54,41 +54,41 @@ func buildService(id string, name string, port int, ip string) consul.AgentServi
 	return consul.AgentServiceRegistration{ID: id, Name: name, Port: port, Address: ip}
 }
 
-func (r *ConsulAgent) registerService(id string, name string, port int, ip string) error {
+func (a *ConsulAgent) registerService(id string, name string, port int, ip string) error {
 	srv := buildService(id, name, port, ip)
-	if err := r.agent.ServiceRegister(&srv); err != nil {
+	if err := a.agent.ServiceRegister(&srv); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *ConsulAgent) deregisterService(id string) error {
-	if err := r.agent.ServiceDeregister(id); err != nil {
+func (a *ConsulAgent) deregisterService(id string) error {
+	if err := a.agent.ServiceDeregister(id); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *ConsulAgent) services() (map[string]*consul.AgentService, error) {
-	services, err := r.agent.Services()
+func (a *ConsulAgent) services() (map[string]*consul.AgentService, error) {
+	services, err := a.agent.Services()
 	if err != nil {
 		return services, err
 	}
 	return services, nil
 }
 
-func (r *ConsulAgent) deregisterServiceID(service_id string) error {
+func (a *ConsulAgent) deregisterServiceID(service_id string) error {
 	log.Printf("deregistering service: %s \n", service_id)
-	if err := r.deregisterService(service_id); err != nil {
+	if err := a.deregisterService(service_id); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *ConsulAgent) deregisterAllServices() error {
-	services, _ := r.services()
+func (a *ConsulAgent) deregisterAllServices() error {
+	services, _ := a.services()
 	for service := range services {
-		r.deregisterServiceID(service)
+		a.deregisterServiceID(service)
 	}
 	return nil
 }

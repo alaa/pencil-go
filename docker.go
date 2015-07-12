@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"log"
 	"time"
 )
@@ -42,20 +42,20 @@ func buildContainerInfo(container *docker.Container) ContainerInfo {
 }
 
 // getRunningContainers finds running containers and returns specific details.
-func (r *DockerClient) getRunningContainers() []ContainerInfo {
-	containersIDs, err := r.getContainersIDs()
+func (c *DockerClient) getRunningContainers() []ContainerInfo {
+	containersIDs, err := c.getContainersIDs()
 	if err != nil {
 		log.Print(err)
 	}
-	containersDetails := r.getContainersDetails(containersIDs)
+	containersDetails := c.getContainersDetails(containersIDs)
 	log.Print("Running containers count: ", len(containersDetails), "\n\n")
 	return containersDetails
 }
 
 // getContainersIDs retruns a list of running docker contianers.
-func (r *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
+func (c *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
 	options := docker.ListContainersOptions{}
-	containers, err := r.client.ListContainers(options)
+	containers, err := c.client.ListContainers(options)
 	if err != nil {
 		return containers, err
 	}
@@ -63,10 +63,10 @@ func (r *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
 }
 
 // getContainersDetails iterate over a list of containers and returns a list of ContainerInfo struct.
-func (r *DockerClient) getContainersDetails(containers []docker.APIContainers) []ContainerInfo {
+func (c *DockerClient) getContainersDetails(containers []docker.APIContainers) []ContainerInfo {
 	list := []ContainerInfo{}
-	for _, c := range containers {
-		i, err := r.inspectContainer(c.ID)
+	for _, container := range containers {
+		i, err := c.inspectContainer(container.ID)
 		if err != nil {
 			log.Print(err)
 		}
@@ -76,8 +76,8 @@ func (r *DockerClient) getContainersDetails(containers []docker.APIContainers) [
 }
 
 // inspectContainer extract container info for a continer ID.
-func (r *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
-	data, err := r.client.InspectContainer(cid)
+func (c *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
+	data, err := c.client.InspectContainer(cid)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
