@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	consul "github.com/hashicorp/consul/api"
+	"log"
 	"time"
 )
 
@@ -76,15 +77,37 @@ func (r *ConsulAgent) services() (map[string]*consul.AgentService, error) {
 	return services, nil
 }
 
+func (r *ConsulAgent) deregisterServiceID(service_id string) error {
+	log.Printf("deregistering service: %s \n", service_id)
+	if err := r.deregisterService(service_id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ConsulAgent) deregisterAllServices() error {
+	services, _ := r.services()
+	for service := range services {
+		r.deregisterServiceID(service)
+	}
+	return nil
+}
+
 func main() {
-	client, _ := NewConsulClient()
+	client, err := NewConsulClient()
+	if err != nil {
+		log.Fatal("Could not connect to consul client")
+	}
+
 	agent := client.NewConsulAgent()
 
 	fmt.Println(agent.members())
-	fmt.Println(agent.services())
 
-	agent.registerService("docker_id_here", "srv-search", 1234, "127.0.0.1")
+	agent.registerService("cid1", "srv-1", 1234, "127.0.0.1")
+	agent.registerService("cid2", "srv-2", 2345, "127.0.0.1")
+	agent.registerService("cid3", "srv-3", 3456, "127.0.0.1")
+
 	time.Sleep(20 * time.Second)
 
-	agent.deregisterService("docker_id_here")
+	agent.deregisterAllServices()
 }
