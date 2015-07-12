@@ -49,16 +49,6 @@ func (r *ConsulAgent) members() Members {
 	return list
 }
 
-// type AgentServiceRegistration struct {
-//	ID      string   `json:",omitempty"`
-//	Name    string   `json:",omitempty"`
-//	Tags    []string `json:",omitempty"`
-//	Port    int      `json:",omitempty"`
-//	Address string   `json:",omitempty"`
-//	Check   *AgentServiceCheck
-//	Checks  AgentServiceChecks
-// }
-
 func buildService(id string, name string, port int, ip string) consulapi.AgentServiceRegistration {
 	return consulapi.AgentServiceRegistration{ID: id, Name: name, Port: port, Address: ip}
 }
@@ -78,11 +68,20 @@ func (r *ConsulAgent) deregisterService(id string) error {
 	return nil
 }
 
+func (r *ConsulAgent) services() (map[string]*consulapi.AgentService, error) {
+	if services, err := r.agent.Services(); err != nil {
+		return services, err
+	} else {
+		return services, nil
+	}
+}
+
 func main() {
 	client, _ := NewConsulClient()
 	agent := client.NewConsulAgent()
 
 	fmt.Println(agent.members())
+	fmt.Println(agent.services())
 
 	agent.registerService("docker_id_here", "srv-search", 1234, "127.0.0.1")
 	time.Sleep(20 * time.Second)
