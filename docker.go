@@ -41,15 +41,6 @@ func buildContainerInfo(container *docker.Container) ContainerInfo {
 	}
 }
 
-func main() {
-	client := NewDocker()
-	c := time.Tick(Interval)
-	for now := range c {
-		containers := client.getRunningContainers()
-		log.Print(now, containers)
-	}
-}
-
 // getRunningContainers finds running containers and returns specific details.
 func (r *DockerClient) getRunningContainers() []ContainerInfo {
 	containersIDs, err := r.getContainersIDs()
@@ -91,4 +82,13 @@ func (r *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
 		return ContainerInfo{}, err
 	}
 	return buildContainerInfo(data), nil
+}
+
+func main() {
+	client := NewDocker()
+	c := time.Tick(Interval)
+	for now := range c {
+		containers := client.getRunningContainers()
+		log.Print(now, containers)
+	}
 }
