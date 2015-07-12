@@ -1,10 +1,8 @@
 package consul
 
 import (
-	"fmt"
 	consul "github.com/hashicorp/consul/api"
 	"log"
-	"time"
 )
 
 type ConsulClient struct {
@@ -93,21 +91,23 @@ func (a *ConsulAgent) deregisterAllServices() error {
 	return nil
 }
 
-func main() {
-	client, err := NewConsulClient()
-	if err != nil {
-		log.Fatal("Could not connect to consul client")
-	}
-
-	agent := client.NewConsulAgent()
-
-	fmt.Println(agent.members())
-
-	agent.registerService("cid1", "srv-1", 1234, "127.0.0.1")
-	agent.registerService("cid2", "srv-2", 2345, "127.0.0.1")
-	agent.registerService("cid3", "srv-3", 3456, "127.0.0.1")
-
-	time.Sleep(20 * time.Second)
-
-	agent.deregisterAllServices()
-}
+// TODO
+// Chain the creation of client().agent()
+// func main() {
+// 	client, err := NewConsulClient()
+// 	if err != nil {
+// 		log.Fatal("Could not connect to consul client")
+// 	}
+//
+// 	agent := client.NewConsulAgent()
+//
+// 	fmt.Println(agent.members())
+//
+// 	agent.registerService("cid1", "srv-1", 1234, "127.0.0.1")
+// 	agent.registerService("cid2", "srv-2", 2345, "127.0.0.1")
+// 	agent.registerService("cid3", "srv-3", 3456, "127.0.0.1")
+//
+// 	time.Sleep(20 * time.Second)
+//
+// 	agent.deregisterAllServices()
+// }
