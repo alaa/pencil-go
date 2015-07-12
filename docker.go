@@ -31,7 +31,7 @@ type ContainerInfo struct {
 	Config  *docker.Config
 }
 
-func (d *DockerClient) buildContainerInfo(container *docker.Container) ContainerInfo {
+func buildContainerInfo(container *docker.Container) ContainerInfo {
 	return ContainerInfo{
 		ID:      container.ID,
 		Name:    container.Name,
@@ -51,20 +51,20 @@ func main() {
 }
 
 // getRunningContainers finds running containers and returns specific details.
-func (d *DockerClient) getRunningContainers() []ContainerInfo {
-	containersIDs, err := d.getContainersIDs()
+func (r *DockerClient) getRunningContainers() []ContainerInfo {
+	containersIDs, err := r.getContainersIDs()
 	if err != nil {
 		log.Print(err)
 	}
-	containersDetails := d.getContainersDetails(containersIDs)
+	containersDetails := r.getContainersDetails(containersIDs)
 	log.Print("Running containers count: ", len(containersDetails), "\n\n")
 	return containersDetails
 }
 
 // getContainersIDs retruns a list of running docker contianers.
-func (d *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
+func (r *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
 	options := docker.ListContainersOptions{}
-	containers, err := d.client.ListContainers(options)
+	containers, err := r.client.ListContainers(options)
 	if err != nil {
 		return containers, err
 	}
@@ -72,10 +72,10 @@ func (d *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
 }
 
 // getContainersDetails iterate over a list of containers and returns a list of ContainerInfo struct.
-func (d *DockerClient) getContainersDetails(containers []docker.APIContainers) []ContainerInfo {
+func (r *DockerClient) getContainersDetails(containers []docker.APIContainers) []ContainerInfo {
 	list := []ContainerInfo{}
 	for _, c := range containers {
-		i, err := d.inspectContainer(c.ID)
+		i, err := r.inspectContainer(c.ID)
 		if err != nil {
 			log.Print(err)
 		}
@@ -85,10 +85,10 @@ func (d *DockerClient) getContainersDetails(containers []docker.APIContainers) [
 }
 
 // inspectContainer extract container info for a continer ID.
-func (d *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
-	data, err := d.client.InspectContainer(cid)
+func (r *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
+	data, err := r.client.InspectContainer(cid)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
-	return d.buildContainerInfo(data), nil
+	return buildContainerInfo(data), nil
 }
