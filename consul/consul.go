@@ -52,22 +52,7 @@ func buildService(id string, name string, port int, ip string) consul.AgentServi
 	return consul.AgentServiceRegistration{ID: id, Name: name, Port: port, Address: ip}
 }
 
-func (a *ConsulAgent) registerService(id string, name string, port int, ip string) error {
-	srv := buildService(id, name, port, ip)
-	if err := a.agent.ServiceRegister(&srv); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *ConsulAgent) deregisterService(id string) error {
-	if err := a.agent.ServiceDeregister(id); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *ConsulAgent) services() (map[string]*consul.AgentService, error) {
+func (a *ConsulAgent) Services() (map[string]*consul.AgentService, error) {
 	services, err := a.agent.Services()
 	if err != nil {
 		return services, err
@@ -75,39 +60,25 @@ func (a *ConsulAgent) services() (map[string]*consul.AgentService, error) {
 	return services, nil
 }
 
-func (a *ConsulAgent) deregisterServiceID(service_id string) error {
-	log.Printf("deregistering service: %s \n", service_id)
-	if err := a.deregisterService(service_id); err != nil {
+func (a *ConsulAgent) RegisterService(id string, name string, port int, ip string) error {
+	srv := buildService(id, name, port, ip)
+	if err := a.agent.ServiceRegister(&srv); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a *ConsulAgent) deregisterAllServices() error {
-	services, _ := a.services()
-	for service := range services {
-		a.deregisterServiceID(service)
+func (a *ConsulAgent) DeregisterService(id string) error {
+	if err := a.agent.ServiceDeregister(id); err != nil {
+		return err
 	}
 	return nil
 }
 
-// TODO
-// Chain the creation of client().agent()
-// func main() {
-// 	client, err := NewConsulClient()
-// 	if err != nil {
-// 		log.Fatal("Could not connect to consul client")
-// 	}
-//
-// 	agent := client.NewConsulAgent()
-//
-// 	fmt.Println(agent.members())
-//
-// 	agent.registerService("cid1", "srv-1", 1234, "127.0.0.1")
-// 	agent.registerService("cid2", "srv-2", 2345, "127.0.0.1")
-// 	agent.registerService("cid3", "srv-3", 3456, "127.0.0.1")
-//
-// 	time.Sleep(20 * time.Second)
-//
-// 	agent.deregisterAllServices()
-// }
+func (a *ConsulAgent) DeregisterAllServices() error {
+	services, _ := a.services()
+	for service := range services {
+		a.DeregisterService(service)
+	}
+	return nil
+}

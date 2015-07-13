@@ -23,22 +23,47 @@ func NewDocker() DockerClient {
 	return DockerClient{client: client}
 }
 
+type TCPPorts []string
+
+type UDPPorts []string
+
 type ContainerInfo struct {
-	ID      string
-	Name    string
-	Image   string
-	Created time.Time
-	Config  *docker.Config
+	ID       string
+	Name     string
+	Image    string
+	Created  time.Time
+	Config   *docker.Config
+	TCPPorts TCPPorts
+	UDPPorts UDPPorts
 }
 
 func buildContainerInfo(container *docker.Container) ContainerInfo {
+	tcpPorts, udpPorts := ports(container)
 	return ContainerInfo{
-		ID:      container.ID,
-		Name:    container.Name,
-		Image:   container.Image,
-		Created: container.Created,
-		Config:  container.Config,
+		ID:       container.ID,
+		Name:     container.Name,
+		Image:    container.Image,
+		Created:  container.Created,
+		Config:   container.Config,
+		TCPPorts: tcpPorts,
+		UDPPorts: udpPorts,
 	}
+}
+
+func ports(container *docker.Container) (TCPPorts, UDPPorts) {
+	tcp_list := TCPPorts{}
+	udp_list := UDPPorts{}
+	exposed_ports := container.Config.ExposedPorts
+
+	for port, _ := range exposed_ports {
+		if port.Proto() == "tcp" {
+			tcp_list = append(tcp_list, port.Port())
+		} else if port.Proto() == "udp" {
+			udp_list = append(udp_list, port.Port())
+		}
+	}
+
+	return tcp_list, udp_list
 }
 
 // getRunningContainers finds running containers and returns specific details.
@@ -83,12 +108,3 @@ func (c *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
 	}
 	return buildContainerInfo(data), nil
 }
-
-// func main() {
-// 	client := NewDocker()
-// 	c := time.Tick(Interval)
-// 	for now := range c {
-// 		containers := client.getRunningContainers()
-// 		log.Print(now, containers)
-// 	}
-// }
