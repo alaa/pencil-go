@@ -69,15 +69,6 @@ func getImageName(image string) string {
 	}
 }
 
-func getEnvVariables(env []string) map[string]string {
-	m := make(map[string]string)
-	for _, value := range env {
-		e := strings.Split(value, "=")
-		m[e[0]] = e[1]
-	}
-	return m
-}
-
 const SRV_NAME = "SRV_NAME"
 
 func serviceName(container *docker.Container) string {
@@ -103,6 +94,17 @@ func getExposedPorts(container *docker.Container) (TCPPorts, UDPPorts) {
 		}
 	}
 	return tcp_list, udp_list
+}
+
+type EnvVariables map[string]string
+
+func getEnvVariables(env []string) EnvVariables {
+	m := make(map[string]string)
+	for _, value := range env {
+		e := strings.Split(value, "=")
+		m[e[0]] = e[1]
+	}
+	return m
 }
 
 // getRunningContainers finds running containers and returns specific details.
