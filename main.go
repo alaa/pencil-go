@@ -14,7 +14,7 @@ func main() {
 	for range c {
 		containers := client.GetRunningContainers()
 		for _, container := range containers {
-			fmt.Printf("%s %s \n\n", container.ID, container.TCPPorts)
+			fmt.Printf("%s %s %s service_name:%s \n\n", container.ID, container.ImageName, container.TCPPorts, container.ServiceName)
 		}
 	}
 }

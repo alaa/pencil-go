@@ -3,6 +3,7 @@ package docker
 import (
 	docker "github.com/fsouza/go-dockerclient"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -28,29 +29,68 @@ type TCPPorts []string
 type UDPPorts []string
 
 type ContainerInfo struct {
-	ID       string
-	Name     string
-	Image    string
-	Created  time.Time
-	Config   *docker.Config
-	TCPPorts TCPPorts
-	UDPPorts UDPPorts
+	ID          string
+	Name        string
+	ImageID     string
+	ImageName   string
+	ServiceName string
+	Env         map[string]string
+	Created     time.Time
+	Config      *docker.Config
+	TCPPorts    TCPPorts
+	UDPPorts    UDPPorts
 }
 
 func buildContainerInfo(container *docker.Container) ContainerInfo {
-	tcpPorts, udpPorts := ports(container)
+	tcpPorts, udpPorts := getExposedPorts(container)
+	imageName := getImageName(container.Config.Image)
+	envVars := getEnvVariables(container.Config.Env)
+	srvName := serviceName(container)
+
 	return ContainerInfo{
-		ID:       container.ID,
-		Name:     container.Name,
-		Image:    container.Image,
-		Created:  container.Created,
-		Config:   container.Config,
-		TCPPorts: tcpPorts,
-		UDPPorts: udpPorts,
+		ID:          container.ID,
+		Name:        container.Name,
+		ImageID:     container.Image,
+		ImageName:   imageName,
+		ServiceName: srvName,
+		Env:         envVars,
+		Created:     container.Created,
+		Config:      container.Config,
+		TCPPorts:    tcpPorts,
+		UDPPorts:    udpPorts,
 	}
 }
 
-func ports(container *docker.Container) (TCPPorts, UDPPorts) {
+func getImageName(image string) string {
+	if img := strings.Split(image, "/"); len(img) > 1 {
+		return img[1]
+	} else {
+		return img[0]
+	}
+}
+
+func getEnvVariables(env []string) map[string]string {
+	m := make(map[string]string)
+	for _, value := range env {
+		e := strings.Split(value, "=")
+		m[e[0]] = e[1]
+	}
+	return m
+}
+
+const SRV_NAME = "SRV_NAME"
+
+func serviceName(container *docker.Container) string {
+	serviceName := getImageName(container.Config.Image)
+	serviceEnv := getEnvVariables(container.Config.Env)
+
+	if value, exsists := serviceEnv[SRV_NAME]; exsists {
+		serviceName = value
+	}
+	return serviceName
+}
+
+func getExposedPorts(container *docker.Container) (TCPPorts, UDPPorts) {
 	tcp_list := TCPPorts{}
 	udp_list := UDPPorts{}
 	exposed_ports := container.Config.ExposedPorts
@@ -62,11 +102,11 @@ func ports(container *docker.Container) (TCPPorts, UDPPorts) {
 			udp_list = append(udp_list, port.Port())
 		}
 	}
-
 	return tcp_list, udp_list
 }
 
 // getRunningContainers finds running containers and returns specific details.
+// TOOD package should return error, logging should be disabled.
 func (c *DockerClient) GetRunningContainers() []ContainerInfo {
 	containersIDs, err := c.getContainersIDs()
 	if err != nil {
