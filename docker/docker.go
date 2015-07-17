@@ -145,6 +145,7 @@ func (c *DockerClient) getContainersDetails(containers []docker.APIContainers) [
 // inspectContainer extract container info for a continer ID.
 func (c *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
 	data, err := c.client.InspectContainer(cid)
+	log.Printf("%v", *data.NetworkSettings)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
