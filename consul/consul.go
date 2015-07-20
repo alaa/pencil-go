@@ -2,7 +2,6 @@ package consul
 
 import (
 	consul "github.com/hashicorp/consul/api"
-	"log"
 )
 
 type ConsulClient struct {
@@ -60,6 +59,20 @@ func (a *ConsulAgent) Services() (map[string]*consul.AgentService, error) {
 	return services, nil
 }
 
+func (a *ConsulAgent) ServicesIDs() ([]string, error) {
+	services, err := a.agent.Services()
+	if err != nil {
+		return []string{""}, err
+	}
+
+	list := []string{}
+	for _, srv := range services {
+		list = append(list, srv.ID)
+	}
+
+	return list, nil
+}
+
 func (a *ConsulAgent) RegisterService(id string, name string, port int, ip string) error {
 	srv := buildService(id, name, port, ip)
 	if err := a.agent.ServiceRegister(&srv); err != nil {
@@ -76,7 +89,7 @@ func (a *ConsulAgent) DeregisterService(id string) error {
 }
 
 func (a *ConsulAgent) DeregisterAllServices() error {
-	services, _ := a.services()
+	services, _ := a.Services()
 	for service := range services {
 		a.DeregisterService(service)
 	}
