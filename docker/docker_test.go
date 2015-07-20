@@ -2,6 +2,7 @@ package docker
 
 import (
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -22,15 +23,15 @@ var containers = []docker.APIContainers{
 // 2015/07/17 18:06:05 {bd1d34c0ebee   0 0 0  false false false [] map[22/tcp:{}] false false false [PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin DEBIAN_FRONTEND=noninteractive] [/usr/sbin/sshd -D -o UseDNS=no -o UsePAM=no -o PasswordAuthentication=yes -o UsePrivilegeSeparation=no -o PidFile=/tmp/sshd.pid] [] 33e91d7bac3e map[]   [] false [] [] map[]}
 
 var containerConfig = docker.Config{
-	Hostname: "bd1d34c0ebee",
-	//ExposedPorts: map[string]struct{}{"22/tcp": {}},
-	Env:   []string{"SRV_NAME=microservice1", "SRV_TAG=tag1"},
-	Image: "33e91d7bac3e",
+	Hostname:     "bd1d34c0ebee",
+	ExposedPorts: map[docker.Port]struct{}{"22/tcp": {}},
+	Env:          []string{"SRV_NAME=microservice1", "SRV_TAG=tag1"},
+	Image:        "33e91d7bac3e",
 }
 
 var containerDetails = docker.Container{
 	ID:              "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-	Config:          nil,
+	Config:          &containerConfig,
 	Image:           "brainly/eve-landing-pages",
 	NetworkSettings: nil,
 	Name:            "/elated_kirch",
@@ -45,11 +46,22 @@ var containerNetworkSettings = docker.NetworkSettings{
 	//Ports       map[Port][]PortBinding,
 }
 
-func TestgetContainersIDs(t *testing.T) {
-	name := serviceName(&containerDetails)
-	expectedName := "microservice1"
+func TestGetRunningContainers(t *testing.T) {
+	client := fakeDockerClient{}
 
-	if name != expectedName {
-		t.Errorf("serviceName should return: %s but got: %s", expectedName, name)
-	}
+	containers, err := GetRunningContainers(client)
+	assert.Nil(t, err)
+
+	assert.Equal(t, len(containers), 1)
+	assert.Equal(t, containers[0].Name, "/elated_kirch")
+}
+
+type fakeDockerClient struct{}
+
+func (c fakeDockerClient) listContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
+	return containers, nil
+}
+
+func (c fakeDockerClient) inspectContainer(id string) (*docker.Container, error) {
+	return &containerDetails, nil
 }

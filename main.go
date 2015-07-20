@@ -3,16 +3,17 @@ package main
 import (
 	"fmt"
 	//consul "github.com/alaa/pencil-go/consul"
-	docker "github.com/alaa/pencil-go/docker"
+	"github.com/alaa/pencil-go/docker"
 	"time"
 )
 
 func main() {
 	fmt.Println("starting pencil ...\n")
-	client := docker.NewDocker()
+	client, _ := docker.NewDockerClient()
 	c := time.Tick(docker.Interval)
 	for range c {
-		containers := client.GetRunningContainers()
+		containers, _ := docker.GetRunningContainers(client)
+		fmt.Printf("containers: %v\n", containers)
 		for _, container := range containers {
 			fmt.Printf("%s %s %s service_name:%s \n\n", container.ID, container.ImageName, container.TCPPorts, container.ServiceName)
 		}

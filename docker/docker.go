@@ -11,16 +11,15 @@ const (
 	Interval = 5 * time.Second
 )
 
-type DockerClient struct {
+const SRV_NAME = "SRV_NAME"
+
+type ConcreteDockerClient struct {
 	client *docker.Client
 }
 
-func NewDocker() (DockerClient, error) {
-	client, err := docker.NewClient(Endpoint)
-	if err != nil {
-		return DockerClient{}, err
-	}
-	return DockerClient{client: client}, nil
+type DockerClient interface {
+	listContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error)
+	inspectContainer(id string) (*docker.Container, error)
 }
 
 type TCPPorts []string
@@ -38,6 +37,40 @@ type ContainerInfo struct {
 	Config      *docker.Config
 	TCPPorts    TCPPorts
 	UDPPorts    UDPPorts
+}
+
+type EnvVariables map[string]string
+
+// NewDockerClient creates an instance of DockerClient.
+// Returns error when unable to connect to docker daemon.
+func NewDockerClient() (DockerClient, error) {
+	client, err := docker.NewClient(Endpoint)
+	if err != nil {
+		return &ConcreteDockerClient{}, err
+	}
+	return &ConcreteDockerClient{client: client}, nil
+}
+
+// GetRunningContainers finds running containers and returns specific details.
+// TOOD package should return error, logging should be disabled.
+func GetRunningContainers(c DockerClient) ([]ContainerInfo, error) {
+	containersIDs, err := getContainersIDs(c)
+	if err != nil {
+		return []ContainerInfo{}, err
+	}
+	containersDetails, err := getContainersDetails(c, containersIDs)
+	if err != nil {
+		return []ContainerInfo{}, err
+	}
+	return containersDetails, nil
+}
+
+func (c *ConcreteDockerClient) listContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
+	return c.client.ListContainers(opts)
+}
+
+func (c *ConcreteDockerClient) inspectContainer(id string) (*docker.Container, error) {
+	return c.client.InspectContainer(id)
 }
 
 func buildContainerInfo(container *docker.Container) ContainerInfo {
@@ -68,8 +101,6 @@ func getImageName(image string) string {
 	}
 }
 
-const SRV_NAME = "SRV_NAME"
-
 func serviceName(container *docker.Container) string {
 	serviceName := getImageName(container.Config.Image)
 	serviceEnv := getEnvVariables(container.Config.Env)
@@ -95,8 +126,6 @@ func getExposedPorts(container *docker.Container) (TCPPorts, UDPPorts) {
 	return tcp_list, udp_list
 }
 
-type EnvVariables map[string]string
-
 func getEnvVariables(env []string) EnvVariables {
 	m := make(map[string]string)
 	for _, value := range env {
@@ -106,35 +135,19 @@ func getEnvVariables(env []string) EnvVariables {
 	return m
 }
 
-// getRunningContainers finds running containers and returns specific details.
-// TOOD package should return error, logging should be disabled.
-func (c *DockerClient) GetRunningContainers() ([]ContainerInfo, error) {
-	containersIDs, err := c.getContainersIDs()
-	if err != nil {
-		return []ContainerInfo{}, err
-	}
-	containersDetails, err := c.getContainersDetails(containersIDs)
-	if err != nil {
-		return []ContainerInfo{}, err
-	}
-	return containersDetails, nil
-}
-
-// getContainersIDs retruns a list of running docker contianers.
-func (c *DockerClient) getContainersIDs() ([]docker.APIContainers, error) {
+func getContainersIDs(c DockerClient) ([]docker.APIContainers, error) {
 	options := docker.ListContainersOptions{}
-	containers, err := c.client.ListContainers(options)
+	containers, err := c.listContainers(options)
 	if err != nil {
 		return containers, err
 	}
 	return containers, nil
 }
 
-// getContainersDetails iterate over a list of containers and returns a list of ContainerInfo struct.
-func (c *DockerClient) getContainersDetails(containers []docker.APIContainers) ([]ContainerInfo, error) {
+func getContainersDetails(c DockerClient, containers []docker.APIContainers) ([]ContainerInfo, error) {
 	list := []ContainerInfo{}
 	for _, container := range containers {
-		i, err := c.inspectContainer(container.ID)
+		i, err := inspectContainer(c, container.ID)
 		if err != nil {
 			return []ContainerInfo{}, err
 		}
@@ -143,9 +156,8 @@ func (c *DockerClient) getContainersDetails(containers []docker.APIContainers) (
 	return list, nil
 }
 
-// inspectContainer extract container info for a continer ID.
-func (c *DockerClient) inspectContainer(cid string) (ContainerInfo, error) {
-	data, err := c.client.InspectContainer(cid)
+func inspectContainer(c DockerClient, cid string) (ContainerInfo, error) {
+	data, err := c.inspectContainer(cid)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
