@@ -13,13 +13,9 @@ const (
 
 const SRV_NAME = "SRV_NAME"
 
-type ConcreteDockerClient struct {
-	client *docker.Client
-}
-
 type DockerClient interface {
-	listContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error)
-	inspectContainer(id string) (*docker.Container, error)
+	ListContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error)
+	InspectContainer(id string) (*docker.Container, error)
 }
 
 type TCPPorts []string
@@ -41,36 +37,26 @@ type ContainerInfo struct {
 
 type EnvVariables map[string]string
 
-// NewDockerClient creates an instance of DockerClient.
-// Returns error when unable to connect to docker daemon.
-func NewDockerClient() (DockerClient, error) {
-	client, err := docker.NewClient(Endpoint)
-	if err != nil {
-		return &ConcreteDockerClient{}, err
-	}
-	return &ConcreteDockerClient{client: client}, nil
+type DockerAdapter struct {
+	dockerClient DockerClient
+}
+
+func NewDockerAdapter(dockerClient DockerClient) *DockerAdapter {
+	return &DockerAdapter{dockerClient: dockerClient}
 }
 
 // GetRunningContainers finds running containers and returns specific details.
 // TOOD package should return error, logging should be disabled.
-func GetRunningContainers(c DockerClient) ([]ContainerInfo, error) {
-	containersIDs, err := getContainersIDs(c)
+func (d *DockerAdapter) GetRunningContainers() ([]ContainerInfo, error) {
+	containersIDs, err := d.getContainersIDs()
 	if err != nil {
 		return []ContainerInfo{}, err
 	}
-	containersDetails, err := getContainersDetails(c, containersIDs)
+	containersDetails, err := d.getContainersDetails(containersIDs)
 	if err != nil {
 		return []ContainerInfo{}, err
 	}
 	return containersDetails, nil
-}
-
-func (c *ConcreteDockerClient) listContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
-	return c.client.ListContainers(opts)
-}
-
-func (c *ConcreteDockerClient) inspectContainer(id string) (*docker.Container, error) {
-	return c.client.InspectContainer(id)
 }
 
 func buildContainerInfo(container *docker.Container) ContainerInfo {
@@ -135,19 +121,15 @@ func getEnvVariables(env []string) EnvVariables {
 	return m
 }
 
-func getContainersIDs(c DockerClient) ([]docker.APIContainers, error) {
+func (d *DockerAdapter) getContainersIDs() ([]docker.APIContainers, error) {
 	options := docker.ListContainersOptions{}
-	containers, err := c.listContainers(options)
-	if err != nil {
-		return containers, err
-	}
-	return containers, nil
+	return d.dockerClient.ListContainers(options)
 }
 
-func getContainersDetails(c DockerClient, containers []docker.APIContainers) ([]ContainerInfo, error) {
+func (d *DockerAdapter) getContainersDetails(containers []docker.APIContainers) ([]ContainerInfo, error) {
 	list := []ContainerInfo{}
 	for _, container := range containers {
-		i, err := inspectContainer(c, container.ID)
+		i, err := d.inspectContainer(container.ID)
 		if err != nil {
 			return []ContainerInfo{}, err
 		}
@@ -156,8 +138,8 @@ func getContainersDetails(c DockerClient, containers []docker.APIContainers) ([]
 	return list, nil
 }
 
-func inspectContainer(c DockerClient, cid string) (ContainerInfo, error) {
-	data, err := c.inspectContainer(cid)
+func (d *DockerAdapter) inspectContainer(cid string) (ContainerInfo, error) {
+	data, err := d.dockerClient.InspectContainer(cid)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
