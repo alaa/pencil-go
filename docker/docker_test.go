@@ -91,7 +91,8 @@ func TestGetRunningContainers(t *testing.T) {
 		},
 	}
 
-	containers, err := GetRunningContainers(client)
+	adapter := NewDockerAdapter(client)
+	containers, err := adapter.GetRunningContainers()
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedContainers, containers)
@@ -102,7 +103,8 @@ func TestGetRunningContainersWithNoContainers(t *testing.T) {
 
 	expectedContainers := []ContainerInfo{}
 
-	containers, err := GetRunningContainers(client)
+	adapter := NewDockerAdapter(client)
+	containers, err := adapter.GetRunningContainers()
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedContainers, containers)
@@ -153,23 +155,22 @@ func TestGetRunningContainersWithTwoContainers(t *testing.T) {
 		},
 	}
 
-	containers, err := GetRunningContainers(client)
+	adapter := NewDockerAdapter(client)
+	containers, err := adapter.GetRunningContainers()
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedContainers, containers)
 }
 
 type fakeDockerClient struct {
-	fakeContainers []docker.APIContainers
+	fakeContainers       []docker.APIContainers
 	fakeContainerDetails map[string]*docker.Container
 }
 
-
-
-func (c fakeDockerClient) listContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
+func (c fakeDockerClient) ListContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
 	return c.fakeContainers, nil
 }
 
-func (c fakeDockerClient) inspectContainer(id string) (*docker.Container, error) {
+func (c fakeDockerClient) InspectContainer(id string) (*docker.Container, error) {
 	return c.fakeContainerDetails[id], nil
 }
