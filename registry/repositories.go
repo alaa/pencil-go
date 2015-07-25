@@ -2,7 +2,7 @@ package registry
 
 // ContainerRepository is responsible for keeping Containers
 type ContainerRepository interface {
-	GetAll() []*Container
+	GetAll() []Container
 }
 
 // ServiceRepository is responsible for keeping Services

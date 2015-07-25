@@ -23,13 +23,13 @@ func TestSynchronizeWhenNoServicesWereRegisteredBefore(t *testing.T) {
 	}).Return(nil)
 
 	containerRepository.On("GetAll").Return(
-		[]*Container{
-			&Container{
+		[]Container{
+			Container{
 				ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 				Name: "/elated_kirch",
 				Port: 22,
 			},
-			&Container{
+			Container{
 				ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 				Name: "/naughty_heisenberg",
 				Port: 9000,
@@ -55,13 +55,13 @@ func TestSynchronieWhenAllServicesWereRegisteredBefore(t *testing.T) {
 	containerRepository.AssertNotCalled(t, "Register")
 
 	containerRepository.On("GetAll").Return(
-		[]*Container{
-			&Container{
+		[]Container{
+			Container{
 				ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 				Name: "/elated_kirch",
 				Port: 22,
 			},
-			&Container{
+			Container{
 				ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 				Name: "/naughty_heisenberg",
 				Port: 9000,
@@ -87,13 +87,13 @@ func TestSynchronieWhenOneServiceIsMissingAndOneIsRedundant(t *testing.T) {
 	containerRepository.AssertNotCalled(t, "Register")
 
 	containerRepository.On("GetAll").Return(
-		[]*Container{
-			&Container{
+		[]Container{
+			Container{
 				ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 				Name: "/elated_kirch",
 				Port: 22,
 			},
-			&Container{
+			Container{
 				ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 				Name: "/naughty_heisenberg",
 				Port: 9000,
@@ -137,7 +137,7 @@ func (msr *MockServiceRepository) Deregister(serviceID string) error {
 	return args.Error(0)
 }
 
-func (mcr *MockContainerRepository) GetAll() []*Container {
+func (mcr *MockContainerRepository) GetAll() []Container {
 	args := mcr.Called()
-	return args.Get(0).([]*Container)
+	return args.Get(0).([]Container)
 }

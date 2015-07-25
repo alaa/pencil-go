@@ -23,31 +23,31 @@ func (r *Registry) Synchronize() {
 	r.unregisterServices(registeredServicesIDs, runningContainers)
 }
 
-func (r *Registry) registerServices(registeredServicesIDs []string, runningContainers []*Container) {
+func (r *Registry) registerServices(registeredServicesIDs []string, runningContainers []Container) {
 	for _, service := range r.servicesToRegister(registeredServicesIDs, runningContainers) {
 		r.serviceRepository.Register(service)
 	}
 }
 
-func (r *Registry) unregisterServices(registeredServicesIDs []string, runningContainers []*Container) {
-	for _, serviceID := range r.servicesIDsToDeregister(registeredServicesIDs, runningContainers) {
-		r.serviceRepository.Deregister(serviceID)
+func (r *Registry) unregisterServices(registeredServicesIDs []string, runningContainers []Container) {
+	for _, serviceID := range r.servicesIDsToUnregister(registeredServicesIDs, runningContainers) {
+		r.serviceRepository.Unregister(serviceID)
 	}
 }
 
-func (r *Registry) servicesToRegister(registeredServicesIDs []string, runningContainers []*Container) []*Service {
+func (r *Registry) servicesToRegister(registeredServicesIDs []string, runningContainers []Container) []*Service {
 	servicesToRegister := []*Service{}
 	registeredServicesIDsMap := r.sliceToMap(registeredServicesIDs)
 	for _, container := range runningContainers {
 		if _, ok := registeredServicesIDsMap[container.ID]; !ok {
-			servicesToRegister = append(servicesToRegister, containerToService(container))
+			servicesToRegister = append(servicesToRegister, containerToService(&container))
 		}
 	}
 	return servicesToRegister
 }
 
-func (r *Registry) servicesIDsToDeregister(registeredServicesIDs []string, runningContainers []*Container) []string {
-	servicesIdsToDeregister := []string{}
+func (r *Registry) servicesIDsToDeregister(registeredServicesIDs []string, runningContainers []Container) []string {
+	servicesIdsToUnregister := []string{}
 	runningContainersIDsSet := r.containersIDsMap(runningContainers)
 	for _, serviceID := range registeredServicesIDs {
 		if _, ok := runningContainersIDsSet[serviceID]; !ok {
@@ -69,7 +69,7 @@ func (r *Registry) sliceToMap(slice []string) map[string]bool {
 	return result
 }
 
-func (r *Registry) containersIDsMap(containers []*Container) map[string]bool {
+func (r *Registry) containersIDsMap(containers []Container) map[string]bool {
 	result := map[string]bool{}
 	for _, container := range containers {
 		result[container.ID] = true
