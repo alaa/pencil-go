@@ -20,7 +20,7 @@ func (r *Registry) Synchronize() {
 	runningContainers := r.containerRepository.GetAll()
 
 	r.registerServices(registeredServicesIDs, runningContainers)
-	r.unregisterServices(registeredServicesIDs, runningContainers)
+	r.deregisterServices(registeredServicesIDs, runningContainers)
 }
 
 func (r *Registry) registerServices(registeredServicesIDs []string, runningContainers []Container) {
@@ -29,9 +29,9 @@ func (r *Registry) registerServices(registeredServicesIDs []string, runningConta
 	}
 }
 
-func (r *Registry) unregisterServices(registeredServicesIDs []string, runningContainers []Container) {
-	for _, serviceID := range r.servicesIDsToUnregister(registeredServicesIDs, runningContainers) {
-		r.serviceRepository.Unregister(serviceID)
+func (r *Registry) deregisterServices(registeredServicesIDs []string, runningContainers []Container) {
+	for _, serviceID := range r.servicesIDsToDeregister(registeredServicesIDs, runningContainers) {
+		r.serviceRepository.Deregister(serviceID)
 	}
 }
 
@@ -47,7 +47,7 @@ func (r *Registry) servicesToRegister(registeredServicesIDs []string, runningCon
 }
 
 func (r *Registry) servicesIDsToDeregister(registeredServicesIDs []string, runningContainers []Container) []string {
-	servicesIdsToUnregister := []string{}
+	servicesIdsToDeregister := []string{}
 	runningContainersIDsSet := r.containersIDsMap(runningContainers)
 	for _, serviceID := range registeredServicesIDs {
 		if _, ok := runningContainersIDsSet[serviceID]; !ok {
