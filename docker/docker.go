@@ -21,16 +21,16 @@ func NewContainerRepository(dockerClient dockerClient) *ContainerRepository {
 }
 
 // GetAll returns list of all running docker containers
-func (cr *ContainerRepository) GetAll() []registry.Container {
+func (cr *ContainerRepository) GetAll() ([]registry.Container, error) {
 	containersIDs, err := cr.getContainersIDs()
 	if err != nil {
-		return []registry.Container{}
+		return []registry.Container{}, err
 	}
 	containers, err := cr.getContainers(containersIDs)
 	if err != nil {
-		return []registry.Container{}
+		return []registry.Container{}, err
 	}
-	return containers
+	return containers, nil
 }
 
 func (cr *ContainerRepository) getContainersIDs() ([]string, error) {

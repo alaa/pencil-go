@@ -1,5 +1,7 @@
 package registry
 
+import log "github.com/brainly/eve-go-logger"
+
 // Registry understands how to synchronize registered Services with running Containers
 type Registry struct {
 	containerRepository ContainerRepository
@@ -17,7 +19,12 @@ func NewRegistry(containerRepository ContainerRepository, serviceRepository Serv
 // Synchronize synchronizes registered services according to running containers
 func (r *Registry) Synchronize() {
 	registeredServicesIDs := r.serviceRepository.GetAllIds()
-	runningContainers := r.containerRepository.GetAll()
+	runningContainers, err := r.containerRepository.GetAll()
+
+	if err != nil {
+		log.Errorf("Error while fetching running containers: %+v", err)
+		return
+	}
 
 	r.registerServices(registeredServicesIDs, runningContainers)
 	r.deregisterServices(registeredServicesIDs, runningContainers)

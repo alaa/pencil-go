@@ -1,9 +1,11 @@
 package docker
 
 import (
+	"errors"
 	"github.com/alaa/pencil-go/registry"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"sort"
 	"testing"
 )
@@ -75,8 +77,9 @@ func TestGetAllWhenNoContainersAreRunning(t *testing.T) {
 	expectedContainers := []registry.Container{}
 
 	containerRepository := NewContainerRepository(client)
-	containers := containerRepository.GetAll()
+	containers, err := containerRepository.GetAll()
 
+	assert.Nil(t, err)
 	assert.Equal(t, expectedContainers, containers)
 }
 
@@ -111,10 +114,47 @@ func TestGetRunningContainersWithTwoContainers(t *testing.T) {
 	}
 
 	adapter := NewContainerRepository(client)
-	containers := adapter.GetAll()
+	containers, _ := adapter.GetAll()
 	sort.Sort(byID{containers})
 
 	assert.Equal(t, expectedContainers, containers)
+}
+
+func TestGetAllWhenListContainersFails(t *testing.T) {
+	client := mockDockerClient{}
+	containerRepository := NewContainerRepository(&client)
+	expectedError := errors.New("foo")
+
+	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{}, expectedError)
+
+	_, err := containerRepository.GetAll()
+	assert.Equal(t, expectedError, err)
+}
+
+func TestGetAllWhenInspectContainerFails(t *testing.T) {
+	client := mockDockerClient{}
+	containerRepository := NewContainerRepository(&client)
+	expectedError := errors.New("bar")
+
+	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{containerA}, nil)
+	client.On("InspectContainer", "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9").Return(&docker.Container{}, expectedError)
+
+	_, err := containerRepository.GetAll()
+	assert.Equal(t, expectedError, err)
+}
+
+type mockDockerClient struct {
+	mock.Mock
+}
+
+func (c *mockDockerClient) ListContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
+	args := c.Called(opts)
+	return args.Get(0).([]docker.APIContainers), args.Error(1)
+}
+
+func (c *mockDockerClient) InspectContainer(id string) (*docker.Container, error) {
+	args := c.Called(id)
+	return args.Get(0).(*docker.Container), args.Error(1)
 }
 
 type fakeDockerClient struct {

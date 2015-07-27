@@ -1,9 +1,18 @@
 package registry
 
 import (
+	"errors"
+	log "github.com/brainly/eve-go-logger"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"os"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	log.SetupMock()
+	os.Exit(m.Run())
+}
 
 func TestSynchronizeWhenNoServicesWereRegisteredBefore(t *testing.T) {
 	serviceRepository := new(MockServiceRepository)
@@ -35,6 +44,7 @@ func TestSynchronizeWhenNoServicesWereRegisteredBefore(t *testing.T) {
 				Port: 9000,
 			},
 		},
+		nil,
 	)
 
 	registry.Synchronize()
@@ -67,6 +77,7 @@ func TestSynchronieWhenAllServicesWereRegisteredBefore(t *testing.T) {
 				Port: 9000,
 			},
 		},
+		nil,
 	)
 
 	registry.Synchronize()
@@ -99,6 +110,7 @@ func TestSynchronieWhenOneServiceIsMissingAndOneIsRedundant(t *testing.T) {
 				Port: 9000,
 			},
 		},
+		nil,
 	)
 
 	serviceRepository.On("Register", &Service{
@@ -112,6 +124,26 @@ func TestSynchronieWhenOneServiceIsMissingAndOneIsRedundant(t *testing.T) {
 
 	serviceRepository.AssertExpectations(t)
 	containerRepository.AssertExpectations(t)
+}
+
+func TestLogErrorIfFetchingContainersFailed(t *testing.T) {
+	serviceRepository := new(MockServiceRepository)
+	containerRepository := new(MockContainerRepository)
+	registry := NewRegistry(containerRepository, serviceRepository)
+
+	serviceRepository.On("GetAllIds").Return([]string{
+		"bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
+		"0g1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
+	})
+
+	containerRepository.On("GetAll").Return([]Container{}, errors.New("foo"))
+
+	logged := log.CaptureOutput(func() {
+		registry.Synchronize()
+	})
+
+	expectedLog := "[testing] 2006-01-02 15:04:05 [ERROR] Error while fetching running containers: foo\n"
+	assert.Equal(t, expectedLog, logged)
 }
 
 type MockServiceRepository struct {
@@ -137,7 +169,7 @@ func (msr *MockServiceRepository) Deregister(serviceID string) error {
 	return args.Error(0)
 }
 
-func (mcr *MockContainerRepository) GetAll() []Container {
+func (mcr *MockContainerRepository) GetAll() ([]Container, error) {
 	args := mcr.Called()
-	return args.Get(0).([]Container)
+	return args.Get(0).([]Container), args.Error(1)
 }
