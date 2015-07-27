@@ -22,20 +22,20 @@ func NewServiceRepository(consulAgent consulAgent) *ServiceRepository {
 }
 
 // Register adds service into consul
-func (c *ServiceRepository) Register(service *registry.Service) error {
-	return c.consulAgent.ServiceRegister(
+func (r *ServiceRepository) Register(service *registry.Service) error {
+	return r.consulAgent.ServiceRegister(
 		buildAgentServiceRegistration(service),
 	)
 }
 
 // Deregister removes service from consul
-func (c *ServiceRepository) Deregister(serviceID string) error {
-	return c.consulAgent.ServiceDeregister(serviceID)
+func (r *ServiceRepository) Deregister(serviceID string) error {
+	return r.consulAgent.ServiceDeregister(serviceID)
 }
 
 // GetAllIds return array of services ids registered in consul
-func (c *ServiceRepository) GetAllIds() []string {
-	services, _ := c.consulAgent.Services()
+func (r *ServiceRepository) GetAllIds() []string {
+	services, _ := r.consulAgent.Services()
 	servicesIDs := []string{}
 	for _, service := range services {
 		servicesIDs = append(servicesIDs, service.ID)
