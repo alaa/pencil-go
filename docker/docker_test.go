@@ -72,11 +72,13 @@ func testWrapperForContainer(t *testing.T, container docker.Container, expectedN
 }
 
 func TestGetAllWhenNoContainersAreRunning(t *testing.T) {
-	client := fakeDockerClient{}
+	client := mockDockerClient{}
+	containerRepository := NewContainerRepository(&client)
+
+	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{}, nil)
 
 	expectedContainers := []registry.Container{}
 
-	containerRepository := NewContainerRepository(client)
 	containers, err := containerRepository.GetAll()
 
 	assert.Nil(t, err)
@@ -84,16 +86,12 @@ func TestGetAllWhenNoContainersAreRunning(t *testing.T) {
 }
 
 func TestGetRunningContainersWithTwoContainers(t *testing.T) {
-	client := fakeDockerClient{
-		fakeContainers: []docker.APIContainers{
-			containerA,
-			containerB,
-		},
-		fakeContainerDetails: map[string]*docker.Container{
-			"bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9": &containerADetails,
-			"f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db": &containerBDetails,
-		},
-	}
+	client := mockDockerClient{}
+	repository := NewContainerRepository(&client)
+
+	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{containerA, containerB}, nil)
+	client.On("InspectContainer", "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9").Return(&containerADetails, nil)
+	client.On("InspectContainer", "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db").Return(&containerBDetails, nil)
 
 	expectedContainers := []registry.Container{
 		registry.Container{
@@ -113,8 +111,7 @@ func TestGetRunningContainersWithTwoContainers(t *testing.T) {
 		},
 	}
 
-	adapter := NewContainerRepository(client)
-	containers, _ := adapter.GetAll()
+	containers, _ := repository.GetAll()
 	sort.Sort(byID{containers})
 
 	assert.Equal(t, expectedContainers, containers)
@@ -155,17 +152,4 @@ func (c *mockDockerClient) ListContainers(opts docker.ListContainersOptions) ([]
 func (c *mockDockerClient) InspectContainer(id string) (*docker.Container, error) {
 	args := c.Called(id)
 	return args.Get(0).(*docker.Container), args.Error(1)
-}
-
-type fakeDockerClient struct {
-	fakeContainers       []docker.APIContainers
-	fakeContainerDetails map[string]*docker.Container
-}
-
-func (c fakeDockerClient) ListContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
-	return c.fakeContainers, nil
-}
-
-func (c fakeDockerClient) InspectContainer(id string) (*docker.Container, error) {
-	return c.fakeContainerDetails[id], nil
 }
