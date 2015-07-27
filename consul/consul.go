@@ -24,7 +24,7 @@ func NewServiceRepository(consulAgent consulAgent) *ServiceRepository {
 // Register adds service into consul
 func (c *ServiceRepository) Register(service *registry.Service) error {
 	return c.consulAgent.ServiceRegister(
-		c.serviceToAgentServiceRegistration(service),
+		buildAgentServiceRegistration(service),
 	)
 }
 
@@ -43,7 +43,7 @@ func (c *ServiceRepository) GetAllIds() []string {
 	return servicesIDs
 }
 
-func (c *ServiceRepository) serviceToAgentServiceRegistration(service *registry.Service) *consul.AgentServiceRegistration {
+func buildAgentServiceRegistration(service *registry.Service) *consul.AgentServiceRegistration {
 	return &consul.AgentServiceRegistration{
 		ID:   service.ID,
 		Name: service.Service,
