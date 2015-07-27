@@ -30,8 +30,8 @@ func (r *Registry) registerServices(registeredServicesIDs []string, runningConta
 }
 
 func (r *Registry) unregisterServices(registeredServicesIDs []string, runningContainers []*Container) {
-	for _, serviceID := range r.servicesIDsToUnregister(registeredServicesIDs, runningContainers) {
-		r.serviceRepository.Unregister(serviceID)
+	for _, serviceID := range r.servicesIDsToDeregister(registeredServicesIDs, runningContainers) {
+		r.serviceRepository.Deregister(serviceID)
 	}
 }
 
@@ -46,15 +46,15 @@ func (r *Registry) servicesToRegister(registeredServicesIDs []string, runningCon
 	return servicesToRegister
 }
 
-func (r *Registry) servicesIDsToUnregister(registeredServicesIDs []string, runningContainers []*Container) []string {
-	servicesIdsToUnregister := []string{}
+func (r *Registry) servicesIDsToDeregister(registeredServicesIDs []string, runningContainers []*Container) []string {
+	servicesIdsToDeregister := []string{}
 	runningContainersIDsSet := r.containersIDsMap(runningContainers)
 	for _, serviceID := range registeredServicesIDs {
 		if _, ok := runningContainersIDsSet[serviceID]; !ok {
-			servicesIdsToUnregister = append(servicesIdsToUnregister, serviceID)
+			servicesIdsToDeregister = append(servicesIdsToDeregister, serviceID)
 		}
 	}
-	return servicesIdsToUnregister
+	return servicesIdsToDeregister
 }
 
 func containerToService(container *Container) *Service {

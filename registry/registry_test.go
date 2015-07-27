@@ -106,7 +106,7 @@ func TestSynchronieWhenOneServiceIsMissingAndOneIsRedundant(t *testing.T) {
 		Service: "/naughty_heisenberg",
 		Port:    9000,
 	}).Return(nil)
-	serviceRepository.On("Unregister", "0g1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9").Return(nil)
+	serviceRepository.On("Deregister", "0g1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9").Return(nil)
 
 	registry.Synchronize()
 
@@ -132,7 +132,7 @@ func (msr *MockServiceRepository) Register(service *Service) error {
 	return args.Error(0)
 }
 
-func (msr *MockServiceRepository) Unregister(serviceID string) error {
+func (msr *MockServiceRepository) Deregister(serviceID string) error {
 	args := msr.Called(serviceID)
 	return args.Error(0)
 }
