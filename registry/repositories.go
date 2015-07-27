@@ -9,7 +9,7 @@ type ContainerRepository interface {
 type ServiceRepository interface {
 	GetAllIds() []string
 	Register(service *Service) error
-	Unregister(serviceID string) error
+	Deregister(serviceID string) error
 }
 
 // Container entity

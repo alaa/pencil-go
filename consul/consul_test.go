@@ -29,13 +29,13 @@ func TestThatRegisterCallConsulApiRegister(t *testing.T) {
 	consulAgent.AssertExpectations(t)
 }
 
-func TestThatUnregisterCallConsulApiDeregister(t *testing.T) {
+func TestThatDeregisterCallConsulApiDeregister(t *testing.T) {
 	consulAgent := new(MockConsulAgent)
 	consulServiceRepository := NewServiceRepository(consulAgent)
 
 	consulAgent.On("ServiceDeregister", "redis1").Return(nil)
 
-	err := consulServiceRepository.Unregister("redis1")
+	err := consulServiceRepository.Deregister("redis1")
 	assert.Nil(t, err)
 	consulAgent.AssertExpectations(t)
 }

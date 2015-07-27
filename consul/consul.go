@@ -28,8 +28,8 @@ func (c *ServiceRepository) Register(service *registry.Service) error {
 	)
 }
 
-// Unregister removes service from consul
-func (c *ServiceRepository) Unregister(serviceID string) error {
+// Deregister removes service from consul
+func (c *ServiceRepository) Deregister(serviceID string) error {
 	return c.consulAgent.ServiceDeregister(serviceID)
 }
 
