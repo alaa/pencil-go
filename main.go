@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/alaa/pencil-go/consul"
 	"github.com/alaa/pencil-go/docker"
+	"github.com/alaa/pencil-go/registry"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	consulclient "github.com/hashicorp/consul/api"
 	"time"
@@ -11,25 +12,18 @@ import (
 
 func main() {
 	fmt.Println("starting pencil ...\n")
-
-	dockerAdapter := getDockerAdapter()
-
-	c := time.Tick(docker.Interval)
-	for range c {
-		containers, _ := dockerAdapter.GetRunningContainers()
-		fmt.Printf("containers: %v\n", containers)
-		for _, container := range containers {
-			fmt.Printf("%s %s %s service_name:%s \n\n", container.ID, container.ImageName, container.TCPPorts, container.ServiceName)
-		}
+	registry := registry.NewRegistry(getContainerRepository(), getServiceRepository())
+	for range time.Tick(5 * time.Second) {
+		registry.Synchronize()
 	}
 }
 
-func getDockerAdapter() *docker.DockerAdapter {
-	client, _ := dockerclient.NewClient(docker.Endpoint)
-	return docker.NewDockerAdapter(client)
+func getContainerRepository() registry.ContainerRepository {
+	client, _ := dockerclient.NewClientFromEnv()
+	return docker.NewContainerRepository(client)
 }
 
-func getConsulAdapter() *consul.ServiceRepository {
+func getServiceRepository() registry.ServiceRepository {
 	consulClient, _ := consulclient.NewClient(consulclient.DefaultConfig())
 	return consul.NewServiceRepository(consulClient.Agent())
 }

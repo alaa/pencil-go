@@ -1,111 +1,81 @@
 package docker
 
 import (
+	"github.com/alaa/pencil-go/registry"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
+	"sort"
 	"testing"
-	"time"
 )
 
 var (
 	// container A section
 	containerA = docker.APIContainers{
-		ID:         "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-		Image:      "33e91d7bac3e",
-		Command:    "/usr/sbin/sshd -D -o UseDNS=no -o UsePAM=no -o PasswordAuthentication=yes -o UsePrivilegeSeparation=no -o PidFile=/tmp/sshd.pid",
-		Created:    1436541119,
-		Status:     "Up 7 days",
-		SizeRw:     0,
-		SizeRootFs: 0,
-		Names:      []string{"/elated_kirch"},
+		ID: "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 	}
 
 	containerAConfig = docker.Config{
-		Hostname:     "bd1d34c0ebee",
-		ExposedPorts: map[docker.Port]struct{}{"22/tcp": {}},
-		Env:          []string{"SRV_NAME=microservice1", "SRV_TAG=tag1"},
-		Image:        "brainly/eve-landing-pages",
+		Env:   []string{"SRV_TAG=tag1"},
+		Image: "brainly/eve-landing-pages",
 	}
 
 	containerADetails = docker.Container{
-		ID:              "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-		Config:          &containerAConfig,
-		Image:           "33e91d7bac3e",
-		NetworkSettings: nil,
-		Name:            "/elated_kirch",
-		Created:         time.Unix(1436541119, 0),
+		ID:     "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
+		Config: &containerAConfig,
+		NetworkSettings: &docker.NetworkSettings{
+			Ports: map[docker.Port][]docker.PortBinding{
+				"22/tcp":   []docker.PortBinding{},
+				"8000/tcp": []docker.PortBinding{},
+			},
+		},
 	}
 
 	// container B section
 	containerB = docker.APIContainers{
-		ID:         "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
-		Image:      "e5d4de01ea02",
-		Command:    "/usr/local/bin/wiyd --daddy=John",
-		Created:    1436541319,
-		Status:     "Up 9 days",
-		SizeRw:     0,
-		SizeRootFs: 0,
-		Names:      []string{"/naughty_heisenberg"},
+		ID: "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 	}
 
 	containerBConfig = docker.Config{
-		Hostname:     "f717f795bccc",
-		ExposedPorts: map[docker.Port]struct{}{"9000/tcp": {}},
-		Env:          []string{"SRV_NAME=microservice2", "SRV_TAG=tag2"},
-		Image:        "brainly/eve-who-is-your-daddy",
+		Env:   []string{"SRV_NAME=microservice2", "SRV_TAG=tag2"},
+		Image: "brainly/eve-who-is-your-daddy",
 	}
 
 	containerBDetails = docker.Container{
-		ID:              "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
-		Config:          &containerBConfig,
-		Image:           "e5d4de01ea02",
-		NetworkSettings: nil,
-		Name:            "/naughty_heisenberg",
-		Created:         time.Unix(1436541319, 0),
+		ID:     "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
+		Config: &containerBConfig,
+		NetworkSettings: &docker.NetworkSettings{
+			Ports: map[docker.Port][]docker.PortBinding{
+				"9000/tcp": []docker.PortBinding{},
+			},
+		},
 	}
 )
 
-func TestGetRunningContainers(t *testing.T) {
-	client := fakeDockerClient{
-		fakeContainers: []docker.APIContainers{containerA},
-		fakeContainerDetails: map[string]*docker.Container{
-			"bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9": &containerADetails,
-		},
-	}
+type containers []registry.Container
+type byID struct{ containers }
 
-	expectedContainers := []ContainerInfo{
-		ContainerInfo{
-			ID:          "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-			Name:        "/elated_kirch",
-			ImageName:   "eve-landing-pages",
-			ImageID:     "33e91d7bac3e",
-			ServiceName: "microservice1",
-			Env: map[string]string{
-				"SRV_NAME": "microservice1",
-				"SRV_TAG":  "tag1",
-			},
-			Created:  time.Unix(1436541119, 0),
-			Config:   &containerAConfig,
-			TCPPorts: TCPPorts{"22"},
-			UDPPorts: UDPPorts{},
-		},
-	}
+func (s containers) Len() int      { return len(s) }
+func (s containers) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s byID) Less(i, j int) bool  { return s.containers[i].ID < s.containers[j].ID }
 
-	adapter := NewDockerAdapter(client)
-	containers, err := adapter.GetRunningContainers()
-	assert.Nil(t, err)
-
-	assert.Equal(t, expectedContainers, containers)
+func TestProperlyWrapContainers(t *testing.T) {
+	testWrapperForContainer(t, containerADetails, "eve-landing-pages", []int{22, 8000})
+	testWrapperForContainer(t, containerBDetails, "microservice2", []int{9000})
 }
 
-func TestGetRunningContainersWithNoContainers(t *testing.T) {
+func testWrapperForContainer(t *testing.T, container docker.Container, expectedName string, expectedPorts []int) {
+	dockerContainerWrapper := dockerContainerWrapper{container}
+	assert.Equal(t, expectedName, dockerContainerWrapper.getName())
+	assert.Equal(t, expectedPorts, dockerContainerWrapper.getExposedTCPPorts())
+}
+
+func TestGetAllWhenNoContainersAreRunning(t *testing.T) {
 	client := fakeDockerClient{}
 
-	expectedContainers := []ContainerInfo{}
+	expectedContainers := []registry.Container{}
 
-	adapter := NewDockerAdapter(client)
-	containers, err := adapter.GetRunningContainers()
-	assert.Nil(t, err)
+	containerRepository := NewContainerRepository(client)
+	containers := containerRepository.GetAll()
 
 	assert.Equal(t, expectedContainers, containers)
 }
@@ -122,42 +92,27 @@ func TestGetRunningContainersWithTwoContainers(t *testing.T) {
 		},
 	}
 
-	expectedContainers := []ContainerInfo{
-		ContainerInfo{
-			ID:          "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-			Name:        "/elated_kirch",
-			ImageName:   "eve-landing-pages",
-			ImageID:     "33e91d7bac3e",
-			ServiceName: "microservice1",
-			Env: map[string]string{
-				"SRV_NAME": "microservice1",
-				"SRV_TAG":  "tag1",
-			},
-			Created:  time.Unix(1436541119, 0),
-			Config:   &containerAConfig,
-			TCPPorts: TCPPorts{"22"},
-			UDPPorts: UDPPorts{},
+	expectedContainers := []registry.Container{
+		registry.Container{
+			ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
+			Name: "eve-landing-pages",
+			Port: 22,
 		},
-		ContainerInfo{
-			ID:          "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
-			Name:        "/naughty_heisenberg",
-			ImageName:   "eve-who-is-your-daddy",
-			ImageID:     "e5d4de01ea02",
-			ServiceName: "microservice2",
-			Env: map[string]string{
-				"SRV_NAME": "microservice2",
-				"SRV_TAG":  "tag2",
-			},
-			Created:  time.Unix(1436541319, 0),
-			Config:   &containerBConfig,
-			TCPPorts: TCPPorts{"9000"},
-			UDPPorts: UDPPorts{},
+		registry.Container{
+			ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
+			Name: "eve-landing-pages",
+			Port: 8000,
+		},
+		registry.Container{
+			ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
+			Name: "microservice2",
+			Port: 9000,
 		},
 	}
 
-	adapter := NewDockerAdapter(client)
-	containers, err := adapter.GetRunningContainers()
-	assert.Nil(t, err)
+	adapter := NewContainerRepository(client)
+	containers := adapter.GetAll()
+	sort.Sort(byID{containers})
 
 	assert.Equal(t, expectedContainers, containers)
 }
