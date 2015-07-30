@@ -2,17 +2,10 @@ package registry
 
 import (
 	"errors"
-	log "github.com/brainly/eve-go-logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"os"
 	"testing"
 )
-
-func TestMain(m *testing.M) {
-	log.SetupMock()
-	os.Exit(m.Run())
-}
 
 func TestSynchronizeWhenNoServicesWereRegisteredBefore(t *testing.T) {
 	serviceRepository := new(MockServiceRepository)
@@ -136,14 +129,12 @@ func TestLogErrorIfFetchingContainersFailed(t *testing.T) {
 		"0g1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 	})
 
-	containerRepository.On("GetAll").Return([]Container{}, errors.New("foo"))
+	expectedError := errors.New("foo")
+	containerRepository.On("GetAll").Return([]Container{}, expectedError)
 
-	logged := log.CaptureOutput(func() {
-		registry.Synchronize()
-	})
+	err := registry.Synchronize()
 
-	expectedLog := "[testing] 2006-01-02 15:04:05 [ERROR] Error while fetching running containers: foo\n"
-	assert.Equal(t, expectedLog, logged)
+	assert.Equal(t, expectedError, err)
 }
 
 type MockServiceRepository struct {
