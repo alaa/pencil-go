@@ -21,23 +21,23 @@ func NewContainerRepository(dockerClient dockerClient) *ContainerRepository {
 }
 
 // GetAll returns list of all running docker containers
-func (cr *ContainerRepository) GetAll() []registry.Container {
+func (cr *ContainerRepository) GetAll() ([]registry.Container, error) {
 	containersIDs, err := cr.getContainersIDs()
 	if err != nil {
-		return []registry.Container{}
+		return nil, err
 	}
 	containers, err := cr.getContainers(containersIDs)
 	if err != nil {
-		return []registry.Container{}
+		return nil, err
 	}
-	return containers
+	return containers, nil
 }
 
 func (cr *ContainerRepository) getContainersIDs() ([]string, error) {
 	containersIDs := []string{}
 	containers, err := cr.dockerClient.ListContainers(docker.ListContainersOptions{})
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 	for _, container := range containers {
 		containersIDs = append(containersIDs, container.ID)
@@ -50,7 +50,7 @@ func (cr *ContainerRepository) getContainers(containersIDs []string) ([]registry
 	for _, containerID := range containersIDs {
 		containerDetails, err := cr.dockerClient.InspectContainer(containerID)
 		if err != nil {
-			return []registry.Container{}, err
+			return nil, err
 		}
 		containers = append(containers, buildContainers(containerDetails)...)
 	}

@@ -15,12 +15,18 @@ func NewRegistry(containerRepository ContainerRepository, serviceRepository Serv
 }
 
 // Synchronize synchronizes registered services according to running containers
-func (r *Registry) Synchronize() {
+func (r *Registry) Synchronize() error {
 	registeredServicesIDs := r.serviceRepository.GetAllIds()
-	runningContainers := r.containerRepository.GetAll()
+	runningContainers, err := r.containerRepository.GetAll()
+
+	if err != nil {
+		return err
+	}
 
 	r.registerServices(registeredServicesIDs, runningContainers)
 	r.deregisterServices(registeredServicesIDs, runningContainers)
+
+	return nil
 }
 
 func (r *Registry) registerServices(registeredServicesIDs []string, runningContainers []Container) {
