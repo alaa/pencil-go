@@ -64,7 +64,7 @@ func (r *Registry) servicesIDsToDeregister(registeredServicesIDs []string, runni
 }
 
 func containerToService(container *Container) *Service {
-	return &Service{ID: container.ID, Service: container.Name, Port: container.Port}
+	return &Service{ID: container.ID, Service: container.Name, Port: container.Port, Tags: container.Tags}
 }
 
 func (r *Registry) sliceToMap(slice []string) map[string]bool {

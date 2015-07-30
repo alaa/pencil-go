@@ -17,8 +17,9 @@ var (
 	}
 
 	containerAConfig = docker.Config{
-		Env:   []string{"SRV_TAG=tag1"},
-		Image: "brainly/eve-landing-pages",
+		Env:    []string{},
+		Image:  "brainly/eve-landing-pages",
+		Labels: map[string]string{},
 	}
 
 	containerADetails = docker.Container{
@@ -38,8 +39,9 @@ var (
 	}
 
 	containerBConfig = docker.Config{
-		Env:   []string{"SRV_NAME=microservice2", "SRV_TAG=tag2"},
-		Image: "brainly/eve-who-is-your-daddy",
+		Env:    []string{"SRV_NAME=microservice2"},
+		Image:  "brainly/eve-who-is-your-daddy",
+		Labels: map[string]string{"tags": "tag1,tag2"},
 	}
 
 	containerBDetails = docker.Container{
@@ -51,6 +53,10 @@ var (
 			},
 		},
 	}
+
+	containerCDetails = docker.Container{
+		Config: &docker.Config{Labels: map[string]string{"tags": "tag1"}},
+	}
 )
 
 type containers []registry.Container
@@ -61,14 +67,15 @@ func (s containers) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s byID) Less(i, j int) bool  { return s.containers[i].ID < s.containers[j].ID }
 
 func TestProperlyWrapContainers(t *testing.T) {
-	testWrapperForContainer(t, containerADetails, "eve-landing-pages", []int{22, 8000})
-	testWrapperForContainer(t, containerBDetails, "microservice2", []int{9000})
+	testWrapperForContainer(t, containerADetails, "eve-landing-pages", []int{22, 8000}, []string{})
+	testWrapperForContainer(t, containerBDetails, "microservice2", []int{9000}, []string{"tag1", "tag2"})
 }
 
-func testWrapperForContainer(t *testing.T, container docker.Container, expectedName string, expectedPorts []int) {
+func testWrapperForContainer(t *testing.T, container docker.Container, expectedName string, expectedPorts []int, expectedTags []string) {
 	dockerContainerWrapper := dockerContainerWrapper{container}
 	assert.Equal(t, expectedName, dockerContainerWrapper.getName())
 	assert.Equal(t, expectedPorts, dockerContainerWrapper.getExposedTCPPorts())
+	assert.Equal(t, expectedTags, dockerContainerWrapper.getTags())
 }
 
 func TestGetAllWhenNoContainersAreRunning(t *testing.T) {
@@ -98,16 +105,19 @@ func TestGetRunningContainersWithTwoContainers(t *testing.T) {
 			ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 			Name: "eve-landing-pages",
 			Port: 22,
+			Tags: []string{},
 		},
 		registry.Container{
 			ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 			Name: "eve-landing-pages",
 			Port: 8000,
+			Tags: []string{},
 		},
 		registry.Container{
 			ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 			Name: "microservice2",
 			Port: 9000,
+			Tags: []string{"tag1", "tag2"},
 		},
 	}
 
@@ -115,6 +125,11 @@ func TestGetRunningContainersWithTwoContainers(t *testing.T) {
 	sort.Sort(byID{containers})
 
 	assert.Equal(t, expectedContainers, containers)
+}
+
+func TestContainerWithOneTag(t *testing.T) {
+	wrapper := dockerContainerWrapper{containerCDetails}
+	assert.Equal(t, []string{"tag1"}, wrapper.getTags())
 }
 
 func TestGetAllWhenListContainersFails(t *testing.T) {

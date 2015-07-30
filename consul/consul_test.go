@@ -17,12 +17,14 @@ func TestThatRegisterCallConsulApiRegister(t *testing.T) {
 		ID:   "redis1",
 		Name: "redis",
 		Port: 8000,
+		Tags: []string{"tag1", "tag2"},
 	}).Return(nil)
 
 	err := consulServiceRepository.Register(&registry.Service{
 		ID:      "redis1",
 		Service: "redis",
 		Port:    8000,
+		Tags:    []string{"tag1", "tag2"},
 	})
 
 	assert.Nil(t, err)

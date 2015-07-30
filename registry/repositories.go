@@ -17,6 +17,7 @@ type Container struct {
 	ID   string
 	Name string
 	Port int
+	Tags []string
 }
 
 // Service entity

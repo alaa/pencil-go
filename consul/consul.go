@@ -48,5 +48,6 @@ func buildAgentServiceRegistration(service *registry.Service) *consul.AgentServi
 		ID:   service.ID,
 		Name: service.Service,
 		Port: service.Port,
+		Tags: service.Tags,
 	}
 }
