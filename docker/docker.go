@@ -65,6 +65,7 @@ func buildContainers(container *docker.Container) []registry.Container {
 		container := registry.Container{
 			ID:   containerWrapper.ID,
 			Name: containerWrapper.getName(),
+			Tags: containerWrapper.getTags(),
 			Port: port,
 		}
 		containers = append(containers, container)

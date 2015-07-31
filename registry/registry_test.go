@@ -17,11 +17,13 @@ func TestSynchronizeWhenNoServicesWereRegisteredBefore(t *testing.T) {
 		ID:      "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 		Service: "/elated_kirch",
 		Port:    22,
+		Tags:    []string{},
 	}).Return(nil)
 	serviceRepository.On("Register", &Service{
 		ID:      "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 		Service: "/naughty_heisenberg",
 		Port:    9000,
+		Tags:    []string{"tag1", "tag2"},
 	}).Return(nil)
 
 	containerRepository.On("GetAll").Return(
@@ -30,11 +32,13 @@ func TestSynchronizeWhenNoServicesWereRegisteredBefore(t *testing.T) {
 				ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 				Name: "/elated_kirch",
 				Port: 22,
+				Tags: []string{},
 			},
 			Container{
 				ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 				Name: "/naughty_heisenberg",
 				Port: 9000,
+				Tags: []string{"tag1", "tag2"},
 			},
 		},
 		nil,
@@ -63,11 +67,13 @@ func TestSynchronieWhenAllServicesWereRegisteredBefore(t *testing.T) {
 				ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 				Name: "/elated_kirch",
 				Port: 22,
+				Tags: []string{},
 			},
 			Container{
 				ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 				Name: "/naughty_heisenberg",
 				Port: 9000,
+				Tags: []string{"tag1", "tag2"},
 			},
 		},
 		nil,
@@ -96,11 +102,13 @@ func TestSynchronieWhenOneServiceIsMissingAndOneIsRedundant(t *testing.T) {
 				ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
 				Name: "/elated_kirch",
 				Port: 22,
+				Tags: []string{},
 			},
 			Container{
 				ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 				Name: "/naughty_heisenberg",
 				Port: 9000,
+				Tags: []string{"tag1", "tag2"},
 			},
 		},
 		nil,
@@ -110,6 +118,7 @@ func TestSynchronieWhenOneServiceIsMissingAndOneIsRedundant(t *testing.T) {
 		ID:      "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
 		Service: "/naughty_heisenberg",
 		Port:    9000,
+		Tags:    []string{"tag1", "tag2"},
 	}).Return(nil)
 	serviceRepository.On("Deregister", "0g1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9").Return(nil)
 

@@ -22,6 +22,14 @@ func (c *dockerContainerWrapper) getExposedTCPPorts() (ports []int) {
 	return
 }
 
+func (c *dockerContainerWrapper) getTags() []string {
+	tags, exist := c.Config.Labels["tags"]
+	if !exist {
+		return []string{}
+	}
+	return strings.Split(tags, ",")
+}
+
 func (c *dockerContainerWrapper) getEnv() map[string]string {
 	envMap := make(map[string]string)
 	for _, value := range c.Config.Env {
