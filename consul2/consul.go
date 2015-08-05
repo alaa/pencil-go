@@ -5,6 +5,7 @@ import (
 	"github.com/alaa/pencil-go/container"
 	consul "github.com/hashicorp/consul/api"
 	"os"
+	"strings"
 )
 
 var (
@@ -80,7 +81,11 @@ func servicesToDeregister(running map[string]*consul.AgentService, containers []
 }
 
 func serviceID(c container.Container) string {
-	return fmt.Sprintf("%s-%s-%d", c.ID, c.Name, c.Port)
+	return fmt.Sprintf("%s-%s-%d", c.ID, withoutTag(c.Name), c.Port)
+}
+
+func withoutTag(name string) string {
+	return strings.Split(name, ":")[0]
 }
 
 func init() {

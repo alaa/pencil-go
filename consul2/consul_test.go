@@ -47,7 +47,7 @@ func TestResyncAddContainers(t *testing.T) {
 		},
 		container.Container{
 			ID:   "99nameg643b",
-			Name: "some-test",
+			Name: "some-test:latest",
 			Port: 9931,
 			Tags: []string{},
 		},
