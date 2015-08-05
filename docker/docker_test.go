@@ -1,170 +1,173 @@
 package docker
 
 import (
-	"errors"
-	"github.com/alaa/pencil-go/registry"
+	"github.com/alaa/pencil-go/container"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"sort"
+	"strings"
 	"testing"
 )
 
-var (
-	// container A section
-	containerA = docker.APIContainers{
-		ID: "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-	}
+func TestAll(t *testing.T) {
+	c1 := runContainer(t, _name("helloworld"), []string{}, []string{"49822:22", "49900:9000", "5555"})
+	defer removeContainer(c1)
 
-	containerAConfig = docker.Config{
-		Env:    []string{},
-		Image:  "brainly/eve-landing-pages",
-		Labels: map[string]string{},
-	}
+	c2 := runContainer(t, _name("some_test"), []string{"tag1", "tag2"}, []string{"49800:8000"})
+	defer removeContainer(c2)
 
-	containerADetails = docker.Container{
-		ID:     "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-		Config: &containerAConfig,
-		NetworkSettings: &docker.NetworkSettings{
-			Ports: map[docker.Port][]docker.PortBinding{
-				"22/tcp":   []docker.PortBinding{},
-				"8000/tcp": []docker.PortBinding{},
-			},
-		},
-	}
-
-	// container B section
-	containerB = docker.APIContainers{
-		ID: "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
-	}
-
-	containerBConfig = docker.Config{
-		Env:    []string{"SRV_NAME=microservice2"},
-		Image:  "brainly/eve-who-is-your-daddy",
-		Labels: map[string]string{"tags": "tag1,tag2"},
-	}
-
-	containerBDetails = docker.Container{
-		ID:     "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
-		Config: &containerBConfig,
-		NetworkSettings: &docker.NetworkSettings{
-			Ports: map[docker.Port][]docker.PortBinding{
-				"9000/tcp": []docker.PortBinding{},
-			},
-		},
-	}
-
-	containerCDetails = docker.Container{
-		Config: &docker.Config{Labels: map[string]string{"tags": "tag1"}},
-	}
-)
-
-type containers []registry.Container
-type byID struct{ containers }
-
-func (s containers) Len() int      { return len(s) }
-func (s containers) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s byID) Less(i, j int) bool  { return s.containers[i].ID < s.containers[j].ID }
-
-func TestProperlyWrapContainers(t *testing.T) {
-	testWrapperForContainer(t, containerADetails, "eve-landing-pages", []int{22, 8000}, []string{})
-	testWrapperForContainer(t, containerBDetails, "microservice2", []int{9000}, []string{"tag1", "tag2"})
-}
-
-func testWrapperForContainer(t *testing.T, container docker.Container, expectedName string, expectedPorts []int, expectedTags []string) {
-	dockerContainerWrapper := dockerContainerWrapper{container}
-	assert.Equal(t, expectedName, dockerContainerWrapper.getName())
-	assert.Equal(t, expectedPorts, dockerContainerWrapper.getExposedTCPPorts())
-	assert.Equal(t, expectedTags, dockerContainerWrapper.getTags())
-}
-
-func TestGetAllWhenNoContainersAreRunning(t *testing.T) {
-	client := mockDockerClient{}
-	containerRepository := NewContainerRepository(&client)
-
-	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{}, nil)
-
-	expectedContainers := []registry.Container{}
-
-	containers, err := containerRepository.GetAll()
+	containers, err := All()
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedContainers, containers)
+
+	assertIncludesContainer(t, containers, container.Container{
+		ID:   c1.ID,
+		Name: "helloworld",
+		Port: 49822,
+		Tags: []string{},
+	})
+
+	assertIncludesContainer(t, containers, container.Container{
+		ID:   c1.ID,
+		Name: "helloworld",
+		Port: 49900,
+		Tags: []string{},
+	})
+
+	assertDoesNotIncludeContainer(t, containers, container.Container{
+		ID:   c1.ID,
+		Name: "helloworld",
+		Port: 5555,
+		Tags: []string{},
+	})
+
+	assertIncludesContainer(t, containers, container.Container{
+		ID:   c2.ID,
+		Name: "some_test",
+		Port: 49800,
+		Tags: []string{"tag1", "tag2"},
+	})
+
+	removeContainer(c1)
+
+	containers, err = All()
+
+	assert.Nil(t, err)
+
+	assertDoesNotIncludeContainer(t, containers, container.Container{
+		ID:   c1.ID,
+		Name: "helloworld",
+		Port: 49822,
+		Tags: []string{},
+	})
+
+	assertDoesNotIncludeContainer(t, containers, container.Container{
+		ID:   c1.ID,
+		Name: "helloworld",
+		Port: 49900,
+		Tags: []string{},
+	})
+
+	assertIncludesContainer(t, containers, container.Container{
+		ID:   c2.ID,
+		Name: "some_test",
+		Port: 49800,
+		Tags: []string{"tag1", "tag2"},
+	})
 }
 
-func TestGetRunningContainersWithTwoContainers(t *testing.T) {
-	client := mockDockerClient{}
-	repository := NewContainerRepository(&client)
+func assertIncludesContainer(t *testing.T, containers []container.Container, expected container.Container) {
+	if !includesContainer(containers, expected) {
+		t.Errorf("\n  Expected %v\nto include %v\n", containers, expected)
+	}
+}
 
-	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{containerA, containerB}, nil)
-	client.On("InspectContainer", "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9").Return(&containerADetails, nil)
-	client.On("InspectContainer", "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db").Return(&containerBDetails, nil)
+func assertDoesNotIncludeContainer(t *testing.T, containers []container.Container, expected container.Container) {
+	if includesContainer(containers, expected) {
+		t.Errorf("\n      Expected %v\nto not include %v\n", containers, expected)
+	}
+}
 
-	expectedContainers := []registry.Container{
-		registry.Container{
-			ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-			Name: "eve-landing-pages",
-			Port: 22,
-			Tags: []string{},
-		},
-		registry.Container{
-			ID:   "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9",
-			Name: "eve-landing-pages",
-			Port: 8000,
-			Tags: []string{},
-		},
-		registry.Container{
-			ID:   "f717f795bcccd674628b92f77a72f4b80b2c6b5da289846a0edbd21fb4c462db",
-			Name: "microservice2",
-			Port: 9000,
-			Tags: []string{"tag1", "tag2"},
-		},
+func includesContainer(containers []container.Container, expected container.Container) bool {
+	for _, c := range containers {
+		if c.IsEqual(expected) {
+			return true
+		}
+	}
+	return false
+}
+
+func runContainer(t *testing.T, name string, tags []string, ports []string) *docker.Container {
+	client.RemoveContainer(docker.RemoveContainerOptions{
+		ID:    name,
+		Force: true,
+	})
+
+	client.TagImage("alpine:3.2", docker.TagImageOptions{
+		Repo:  name,
+		Tag:   "latest",
+		Force: true,
+	})
+
+	hostConfig := &docker.HostConfig{
+		PortBindings: portBindingsFrom(ports),
 	}
 
-	containers, _ := repository.GetAll()
-	sort.Sort(byID{containers})
+	labels := map[string]string{
+		"tags": strings.Join(tags, ","),
+	}
 
-	assert.Equal(t, expectedContainers, containers)
+	container, err := client.CreateContainer(docker.CreateContainerOptions{
+		Config: &docker.Config{
+			Image:        name,
+			Cmd:          []string{"sleep", "5"},
+			Labels:       labels,
+			PortSpecs:    ports,
+			ExposedPorts: exposedPortsFrom(ports),
+		},
+		HostConfig: hostConfig,
+	})
+
+	assert.Nil(t, err)
+
+	client.StartContainer(container.ID, hostConfig)
+	return container
 }
 
-func TestContainerWithOneTag(t *testing.T) {
-	wrapper := dockerContainerWrapper{containerCDetails}
-	assert.Equal(t, []string{"tag1"}, wrapper.getTags())
+func removeContainer(c *docker.Container) {
+	client.RemoveContainer(docker.RemoveContainerOptions{
+		ID:    c.ID,
+		Force: true,
+	})
 }
 
-func TestGetAllWhenListContainersFails(t *testing.T) {
-	client := mockDockerClient{}
-	containerRepository := NewContainerRepository(&client)
-	expectedError := errors.New("foo")
-
-	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{}, expectedError)
-
-	_, err := containerRepository.GetAll()
-	assert.Equal(t, expectedError, err)
+func exposedPortsFrom(ports []string) map[docker.Port]struct{} {
+	result := make(map[docker.Port]struct{})
+	withExposedPorts(ports, func(parts []string) {
+		result[docker.Port(parts[1]+"/tcp")] = struct{}{}
+	})
+	return result
 }
 
-func TestGetAllWhenInspectContainerFails(t *testing.T) {
-	client := mockDockerClient{}
-	containerRepository := NewContainerRepository(&client)
-	expectedError := errors.New("bar")
-
-	client.On("ListContainers", docker.ListContainersOptions{}).Return([]docker.APIContainers{containerA}, nil)
-	client.On("InspectContainer", "bd1d34c0ebeeb62dfdcc57327aca15d2ef3cbc39a60e44aecb7085a8d1f89fd9").Return(&docker.Container{}, expectedError)
-
-	_, err := containerRepository.GetAll()
-	assert.Equal(t, expectedError, err)
+func portBindingsFrom(ports []string) map[docker.Port][]docker.PortBinding {
+	result := make(map[docker.Port][]docker.PortBinding)
+	withExposedPorts(ports, func(parts []string) {
+		result[docker.Port(parts[1]+"/tcp")] = []docker.PortBinding{
+			docker.PortBinding{HostPort: parts[0]},
+		}
+	})
+	return result
 }
 
-type mockDockerClient struct {
-	mock.Mock
+func withExposedPorts(ports []string, fn func([]string)) {
+	for _, p := range ports {
+		parts := strings.Split(p, ":")
+		if len(parts) != 2 {
+			continue
+		}
+		fn(parts)
+	}
 }
 
-func (c *mockDockerClient) ListContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
-	args := c.Called(opts)
-	return args.Get(0).([]docker.APIContainers), args.Error(1)
-}
-
-func (c *mockDockerClient) InspectContainer(id string) (*docker.Container, error) {
-	args := c.Called(id)
-	return args.Get(0).(*docker.Container), args.Error(1)
+func _name(name string) string {
+	return "pencil_go_test/" + name
 }
