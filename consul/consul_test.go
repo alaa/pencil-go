@@ -1,4 +1,4 @@
-package consul2
+package consul
 
 import (
 	"github.com/alaa/pencil-go/container"

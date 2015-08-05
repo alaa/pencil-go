@@ -1,8 +1,8 @@
 package main
 
 import (
-	consul "github.com/alaa/pencil-go/consul2"
-	docker "github.com/alaa/pencil-go/docker2"
+	"github.com/alaa/pencil-go/consul"
+	"github.com/alaa/pencil-go/docker"
 	"log"
 	"time"
 )
