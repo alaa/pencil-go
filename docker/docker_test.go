@@ -1,7 +1,7 @@
 package docker
 
 import (
-	"github.com/alaa/pencil-go/registry"
+	"github.com/brainly/pencil-go/registry"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
 	"sort"

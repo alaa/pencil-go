@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/alaa/pencil-go/consul"
-	"github.com/alaa/pencil-go/docker"
-	"github.com/alaa/pencil-go/registry"
+	"github.com/brainly/pencil-go/consul"
+	"github.com/brainly/pencil-go/docker"
+	"github.com/brainly/pencil-go/registry"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	consulclient "github.com/hashicorp/consul/api"
 	"time"

@@ -1,7 +1,7 @@
 package consul
 
 import (
-	"github.com/alaa/pencil-go/registry"
+	"github.com/brainly/pencil-go/registry"
 	consul "github.com/hashicorp/consul/api"
 )
 
